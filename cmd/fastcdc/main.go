@@ -20,16 +20,22 @@ func createChunkDir() error {
 	if _, err := os.Stat("./chunks"); err != nil {
 		if os.IsNotExist(err) {
 			err = os.Mkdir("chunks", 0755)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 		} else {
 			return err
 		}
 	} else {
 		err = os.RemoveAll("./chunks")
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 
 		err = os.Mkdir("chunks", 0755)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -40,24 +46,28 @@ func writeChunk(chunk fastcdc.Chunk) error {
 	path := filepath.Join("./chunks", filename)
 
 	fo, err := os.Create(path)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	defer fo.Close()
 
 	n, err := fo.Write(chunk.Data)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	fmt.Printf("Wrote %d bytes to %s\n", n, filename)
 
 	return nil
 }
 
-func main() {
+func writeFile(filePath string) {
 	defer func() {
 		if str := recover(); str != nil {
 			fmt.Println(str)
 		}
 	}()
 
-	fi, err := os.Open("./shakespeare.txt")
+	fi, err := os.Open(filePath)
 	check(err)
 	defer fi.Close()
 
@@ -74,8 +84,8 @@ func main() {
 
 	for {
 		chunk, err := chunker.NextChunk()
-		
-		if(err == io.EOF) {
+
+		if err == io.EOF {
 			fmt.Println("Finished chunking")
 			break
 		}
@@ -85,4 +95,8 @@ func main() {
 		err = writeChunk(chunk)
 		check(err)
 	}
+}
+
+func main() {
+	writeFile("./shakespeare.txt")
 }
