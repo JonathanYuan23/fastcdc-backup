@@ -1,4 +1,4 @@
-package fnode
+package fnotify
 
 type Options struct {
 	Path   string
