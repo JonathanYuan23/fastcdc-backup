@@ -109,8 +109,6 @@ func (c *Chunker) NextChunk() (Chunk, error) {
 
 	c.offset += size
 	c.fp = 0
-
-	// MEMORY LEAK
 	c.buf = c.buf[:0]
 
 	return chunk, nil

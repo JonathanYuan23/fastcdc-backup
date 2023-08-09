@@ -10,11 +10,11 @@ import (
 	"fastcdc-backup/pkg/fastcdc"
 )
 
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
+// func check(e error) {
+// 	if e != nil {
+// 		panic(e)
+// 	}
+// }
 
 func createChunkDir() error {
 	if _, err := os.Stat("./chunks"); err != nil {
@@ -60,7 +60,7 @@ func writeChunk(chunk fastcdc.Chunk) error {
 	return nil
 }
 
-func writeFile(filePath string) {
+func writeFile(filePath string) error {
 	defer func() {
 		if str := recover(); str != nil {
 			fmt.Println(str)
@@ -68,7 +68,9 @@ func writeFile(filePath string) {
 	}()
 
 	fi, err := os.Open(filePath)
-	check(err)
+	if err != nil {
+		return err
+	}
 	defer fi.Close()
 
 	// set options
@@ -80,7 +82,9 @@ func writeFile(filePath string) {
 	chunker := fastcdc.NewChunker(br, opt)
 
 	err = createChunkDir()
-	check(err)
+	if err != nil {
+		return err
+	}
 
 	for {
 		chunk, err := chunker.NextChunk()
@@ -88,15 +92,19 @@ func writeFile(filePath string) {
 		if err == io.EOF {
 			fmt.Println("Finished chunking")
 			break
+		} else if err != nil {
+			return err
 		}
 
-		check(err)
-
 		err = writeChunk(chunk)
-		check(err)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func main() {
-	writeFile("./shakespeare.txt")
+	_ = writeFile("./shakespeare.txt")
 }
