@@ -41,7 +41,7 @@ func createChunkDir() error {
 	return nil
 }
 
-func writeChunk(chunk fastcdc.Chunk) error {
+func writeChunk(chunk *fastcdc.Chunk) error {
 	filename := fmt.Sprintf("%x", chunk.Checksum())
 	path := filepath.Join("./chunks", filename)
 
@@ -61,12 +61,6 @@ func writeChunk(chunk fastcdc.Chunk) error {
 }
 
 func writeFile(filePath string) error {
-	defer func() {
-		if str := recover(); str != nil {
-			fmt.Println(str)
-		}
-	}()
-
 	fi, err := os.Open(filePath)
 	if err != nil {
 		return err
@@ -96,7 +90,7 @@ func writeFile(filePath string) error {
 			return err
 		}
 
-		err = writeChunk(chunk)
+		err = writeChunk(&chunk)
 		if err != nil {
 			return err
 		}

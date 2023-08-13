@@ -1,41 +1,41 @@
 {
+    "TimeAccessed": 1691542056,
     "Root": {
         "Path": "./data",
-        "Dir": true,
+        "IsDir": true,
         "Children": [
             {
                 "Path": "./data/data2",
-                "Dir": true,
+                "IsDir": true,
                 "Children": [
                     {
                         "Path": "./data/data2/data3",
-                        "Dir": true,
+                        "IsDir": true,
                         "Children": [
                             {
                                 "Path": "./data/data2/data3/test4.txt",
-                                "Dir": false,
+                                "IsDir": false,
                                 "Children": []
                             }
                         ]
                     },
                     {
                         "Path": "./data/data2/test3.txt",
-                        "Dir": false,
+                        "IsDir": false,
                         "Children": []
                     }
                 ]
             },
             {
                 "Path": "./data/test1.txt",
-                "Dir": false,
+                "IsDir": false,
                 "Children": []
             },
             {
                 "Path": "./data/test2.txt",
-                "Dir": false,
+                "IsDir": false,
                 "Children": []
             }
         ]
-    },
-    "TimeAccessed": 1691456939
+    }
 }

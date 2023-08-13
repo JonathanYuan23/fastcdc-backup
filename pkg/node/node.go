@@ -7,8 +7,8 @@ import (
 )
 
 type Tree struct {
-	Root         *Node
 	TimeAccessed int64
+	Root         *Node
 }
 
 type Node struct {
@@ -49,20 +49,20 @@ func NewDNode(Path string) (*DNode, error) {
 
 type Options struct {
 	Path   string
-	Size   int
+	Size   int64
 	Chunks []string
 }
 
 type FNode struct {
 	Path   string
-	Size   int
+	Size   int64
 	Chunks []string
 }
 
 func NewFNode(opt Options) (*FNode, error) {
 	Path, Size, Chunks := opt.Path, opt.Size, opt.Chunks
 
-	if Path == "" || Size == 0 || Chunks == nil {
+	if Path == "" {
 		return nil, errors.New("error creating FNode")
 	}
 
