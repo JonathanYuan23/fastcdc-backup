@@ -100,6 +100,21 @@ func writeChunklist(fnode *node.FNode) error {
 	return nil
 }
 
+func processNewChunk(db *sql.DB, checksum string, newChunk *fastcdc.Chunk) error {
+	if sqlitechunks.Exists(db, checksum) { // chunk entry exists in internal db
+		// increase instance count of chunk entry
+		sqlitechunks.IncreaseCount(db, checksum)
+
+	} else {
+		// write to chunk directory and send it to server for addition to r2 bucket
+		writeChunk(newChunk)
+
+		// TODO: send chunk to server for addition to R2
+	}
+
+	return nil
+}
+
 func processNewFile(db *sql.DB, file *node.Node) error {
 	if file.IsDir {
 		for _, child := range file.Children {
@@ -123,15 +138,9 @@ func processNewFile(db *sql.DB, file *node.Node) error {
 
 			size += int64(chunk.Size)
 
-			if sqlitechunks.Exists(db, checksum) { // chunk entry exists in internal db
-				// increase instance count of chunk entry
-				sqlitechunks.IncreaseCount(db, checksum)
-
-			} else {
-				// write to chunk directory and send it to server for addition to r2 bucket
-				writeChunk(&chunk)
-
-				// TODO: send chunk to server for addition to R2
+			err := processNewChunk(db, checksum, &chunk)
+			if err != nil {
+				return err
 			}
 		}
 
@@ -205,19 +214,9 @@ func processModifiedFile(db *sql.DB, file *node.Node) error {
 
 		for checksum, inNew := range chunks {
 			if !inNew { // chunk in previous list was not encountered
-				// decrease chunk instance_count in db
-				sqlitechunks.DecreaseCount(db, checksum)
-				instances := sqlitechunks.GetCount(db, checksum)
-
-				if instances == 0 { // instance_count reaches 0 after decrease
-					path := filepath.Join("./chunks", checksum)
-					err := os.Remove(path)
-					if err != nil {
-						return err
-					}
-
-					// TODO: remove chunk from db, request server for R2 removal of chunk
-					// SERVER: if chunk does not exist in snapshot cache, proceed with removal
+				err := processDeletedChunk(db, checksum)
+				if err != nil {
+					return err
 				}
 			}
 		}
@@ -226,15 +225,9 @@ func processModifiedFile(db *sql.DB, file *node.Node) error {
 		for _, newChunk := range newChunks {
 			checksum := fmt.Sprintf("%x", newChunk.Checksum())
 
-			if sqlitechunks.Exists(db, checksum) { // chunk entry exists in internal db
-				// increase instance count of chunk entry
-				sqlitechunks.IncreaseCount(db, checksum)
-
-			} else {
-				// write to chunk directory and send it to server for addition to r2 bucket
-				writeChunk(&newChunk)
-
-				// TODO: send chunk to server for addition to R2
+			err := processNewChunk(db, checksum, &newChunk)
+			if err != nil {
+				return err
 			}
 		}
 
@@ -245,6 +238,25 @@ func processModifiedFile(db *sql.DB, file *node.Node) error {
 		}
 		// replace old chunklist
 		writeChunklist(fnode)
+	}
+
+	return nil
+}
+
+func processDeletedChunk(db *sql.DB, checksum string) error {
+	// decrease chunk instance_count in db
+	sqlitechunks.DecreaseCount(db, checksum)
+	instances := sqlitechunks.GetCount(db, checksum)
+
+	if instances == 0 { // instance_count reaches 0 after decrease
+		path := filepath.Join("./chunks", checksum)
+		err := os.Remove(path)
+		if err != nil {
+			return err
+		}
+
+		// TODO: remove chunk from db, request server for R2 removal of chunk
+		// SERVER: if chunk does not exist in snapshot cache, proceed with removal
 	}
 
 	return nil
@@ -276,19 +288,9 @@ func processDeletedFile(db *sql.DB, file *node.Node) error {
 		json.Unmarshal(bytes, &oldChunklist)
 
 		for _, checksum := range oldChunklist.Chunks {
-			// decrease chunk instance_count in db
-			sqlitechunks.DecreaseCount(db, checksum)
-			instances := sqlitechunks.GetCount(db, checksum)
-
-			if instances == 0 { // instance_count reaches 0 after decrease
-				path := filepath.Join("./chunks", checksum)
-				err := os.Remove(path)
-				if err != nil {
-					return err
-				}
-
-				// TODO: remove chunk from db, request server for R2 removal of chunk
-				// SERVER: if chunk does not exist in snapshot cache, proceed with removal
+			err := processDeletedChunk(db, checksum)
+			if err != nil {
+				return err
 			}
 		}
 
@@ -434,7 +436,8 @@ func main() {
 		}
 	}()
 
-	_ = initHierarchy()
+	err := initHierarchy()
+	check(err)
 	w := watcher.New()
 
 	rules := []string{}
@@ -468,6 +471,6 @@ func main() {
 		}
 	}()
 
-	err := w.Start(time.Second)
+	err = w.Start(time.Second)
 	check(err)
 }
